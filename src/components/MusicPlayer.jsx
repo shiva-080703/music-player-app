@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
 import '../styles/MusicPlayer.css';
@@ -6,6 +6,7 @@ import '../styles/MusicPlayer.css';
 const MusicPlayer = () => {
   const [currentTrack, setCurrentTrack] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef();
 
   const playlist = [
@@ -137,16 +138,30 @@ const MusicPlayer = () => {
     song.artist.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Auto-play when track changes
+  useEffect(() => {
+    if (isPlaying && audioRef.current && audioRef.current.audio.current) {
+      const playPromise = audioRef.current.audio.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.log("Playback prevented:", error);
+        });
+      }
+    }
+  }, [currentTrack, isPlaying]);
+
   const handleClickPrevious = () => {
     setCurrentTrack((prevTrack) => 
       prevTrack === 0 ? playlist.length - 1 : prevTrack - 1
     );
+    setIsPlaying(true);
   };
 
   const handleClickNext = () => {
     setCurrentTrack((prevTrack) => 
       (prevTrack + 1) % playlist.length
     );
+    setIsPlaying(true);
   };
 
   const handleEnd = () => {
@@ -155,7 +170,20 @@ const MusicPlayer = () => {
 
   const handlePlaylistClick = (index) => {
     setCurrentTrack(index);
-    audioRef.current.audio.current.play();
+    setIsPlaying(true);
+    setTimeout(() => {
+      if (audioRef.current && audioRef.current.audio.current) {
+        audioRef.current.audio.current.play();
+      }
+    }, 100);
+  };
+
+  const handlePlay = () => {
+    setIsPlaying(true);
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
   };
 
   const handleSearchChange = (e) => {
@@ -197,7 +225,9 @@ const MusicPlayer = () => {
             onClickPrevious={handleClickPrevious}
             onClickNext={handleClickNext}
             onEnded={handleEnd}
-            autoPlayAfterSrcChange={false}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            autoPlay={false}
             customAdditionalControls={[]}
           />
         </div>
